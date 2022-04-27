@@ -22,6 +22,7 @@ class ConfigClass:
     _config = {
         'sparql_endpoint': os.getenv('SPARQL_ENDPOINT'),
         'proxy_prefix': os.getenv('PROXY_PREFIX', ''),
+        'force_recreate': True,
         'server': {
             'host': os.getenv('HOST', '127.0.0.1'),
             'port': int(os.getenv('PORT', '5010')),

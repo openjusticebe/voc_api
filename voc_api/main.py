@@ -10,7 +10,7 @@ import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-# import voc_api.deps as deps
+import voc_api.deps as deps
 import voc_api.lib_misc as lm
 # from voc_api.models import something
 
@@ -52,7 +52,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     # Build whoosh index
-    pass
+    deps.WH_INDEX = deps.init_state()
 
 
 # ############################################################### SERVER ROUTES
