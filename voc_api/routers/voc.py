@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends
 from voc_api.models import (
     SuggestResponse
 )
+import voc_api.deps as deps
+from voc_api.deps import match, logger
 
 router = APIRouter()
 
@@ -15,13 +17,9 @@ async def labels(begin: str, lang: str):
 
     # TODO:
     # Use whoosh match result
+    logger.debug("query: %s" % begin)
+    list = match(begin, deps.WH_INDEX)
 
-    # Test payload
-    payload = {
-        'uri': 'http://example.com/uri',
-        'label': 'somelabel',
-        'label_ln': 'fr',
-        'label_type': 'pref',
+    return {
+        'data': list
     }
-
-    return payload

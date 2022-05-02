@@ -1,5 +1,4 @@
 import logging
-
 import os
 import typing as t
 import string
@@ -7,6 +6,7 @@ import pathlib
 import unidecode
 import shutil
 import re
+import rdflib
 
 from whoosh.index import create_in, open_dir, exists_in
 from whoosh.fields import Schema, TEXT, STORED, KEYWORD
@@ -72,11 +72,61 @@ def init_state(force=False):
     # TODO: Build IDX
     # - get data
     # - write to whoosh
+    #
 
+    g = rdflib.Graph()
+
+    query = """
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT *
+WHERE {
+    SERVICE <%s> {
+        ?subject <http://www.w3.org/2004/02/skos/core#notation> ?term .
+        ?subject <http://www.w3.org/2004/02/skos/core#prefLabel> ?plabel .
+            OPTIONAL {
+        ?subject <http://www.w3.org/2004/02/skos/core#altLabel> ?alabel
+            FILTER (lang(?alabel) = 'fr')
+          }
+        FILTER (lang(?plabel) = 'fr')
+    }
+}
+
+    # If testing
+    # LIMIT 250
+    """ % (config.key('sparql_endpoint'))
+    logger.debug(query)
+    qres = g.query(query)
+
+    list = []
+    i = 0
+    for row in qres:
+        i += 1
+        list.append({
+            'label': str(row.plabel),
+            'url': str(row.subject),
+            'tp': 'pref'
+        })
+
+        if row.alabel:
+            list.append({
+                'label': str(row.alabel),
+                'url': str(row.subject),
+                'tp': 'alt'
+            })
+
+    logger.info('Obtained %s terms, preparing to index' % i)
     create_table(index_dir, overwrite=True)
 
-    logging.info('Suggestion index tables written')
-    return open_dir(index_dir)
+    idx = open_dir(index_dir)
+    # Write to index
+    with idx.writer() as w:
+        for el in list:
+            w.add_document(**el)
+
+    logger.info('Indexes written, whoosh index ready')
+
+    return idx
 
 
 def check_table(index_dir: t.Union[str, pathlib.Path]) -> bool:
@@ -119,12 +169,6 @@ def create_table(index_dir, *, overwrite=False):
     return index_dir
 
 
-# FIXME: Apparemment inutilisé
-def write_record(idx, **fields):
-    writer = idx.writer()
-    writer.add_document(**fields)
-
-
 class CustomFuzzyTerm(FuzzyTerm):
     def __init__(self, fieldname, text, boost=5.0, maxdist=2,  # pylint: disable=too-many-arguments
                  prefixlength=3, constantscore=False):
@@ -161,11 +205,12 @@ def match(query_str, idx, limit=40):
         results_fuzzy = searcher.search(query, limit=limit)
         results.upgrade_and_extend(results_fuzzy)
         for res in results:
+            print(res)
             ret_results.append({
+                'uri': res['url'],
                 'label': res['label'],
-                'url': res['url'],
-                'lang': 'fr',
-                'type': res['tp'],
+                'label_ln': 'fr',
+                'label_type': res['tp'],
                 'score': res.score
             })
 
