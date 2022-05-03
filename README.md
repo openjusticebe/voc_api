@@ -17,7 +17,7 @@ poetry run api --debug
 ```
 
 ### Database
-A PostGRESQL DB has to be available
+A PostgreSQL DB has to be available
 
 ```
 docker run --name vocapi-postgres -v postgres-data:/var/lib/postgresql/data \
