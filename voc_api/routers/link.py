@@ -15,6 +15,7 @@ from voc_api.models import (
 from starlette.requests import Request
 import logging
 import uuid
+import asyncpg
 
 router = APIRouter()
 
@@ -26,8 +27,14 @@ logger.addHandler(logging.StreamHandler())
 @router.get("/link", response_model=LinkResponse)
 async def link_get(iri: str, db=Depends(get_db)):
     logger.debug('Get links for %s', iri)
-    # Get term iri's associated with item iri's
-    pass
+    sql = """
+    SELECT term_iri
+    FROM links
+    WHERE item_iri = $1
+    ORDER BY date_created DESC
+    """
+    res = await db.fetch(sql, iri)
+    return {'data': [str(r['term_iri']) for r in res]}
 
 
 @router.post("/link")
@@ -46,19 +53,24 @@ async def link_set(
     INSERT INTO links (
         item_iri,
         term_iri,
-        op_uuid
-    ) VALUES ( $1, $2, $3)
+        op_uuid,
+        ukey
+    ) VALUES ( $1, $2, $3, $4)
     RETURNING id_internal;
     """
 
     for term_iri in query.terms:
-        relId = await db.fetchval(
-            sql,
-            query.item_iri,
-            term_iri,
-            op_uuid
-        )
+        try:
+            relId = await db.fetchval(
+                sql,
+                query.item_iri,
+                term_iri,
+                op_uuid,
+                current_user.email
+            )
 
-        logger.debug('Set (op %s / id %s) association %s -> %s', op_uuid, relId, query.item_iri, term_iri)
+            logger.debug('Set (op %s / id %s) association %s -> %s', op_uuid, relId, query.item_iri, term_iri)
+        except asyncpg.exceptions.UniqueViolationError:
+            logger.warn('Association already exists: %s -> %s', query.item_iri, term_iri)
 
     return "ok"
