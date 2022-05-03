@@ -34,6 +34,9 @@ class ConfigClass:
             'log_level': os.getenv('LOG_LEVEL', 'info'),
             'timeout_keep_alive': 0,
         },
+        'oj_env': os.getenv('OJ_ENV', 'development'),
+        'oj_key': os.getenv('OJ_KEY', '[SET KEY]'),
+        'auth_host': os.getenv('AUTH_HOST', 'http://localhost:5015'),
         'log_level': 'info',
     }
 

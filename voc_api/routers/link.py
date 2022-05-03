@@ -2,15 +2,19 @@ from ..deps import (
     match,
     get_db,
 )
+from ..auth import (
+    get_current_active_user_opt,
+    credentials_exception,
+)
 from fastapi import APIRouter, Depends
 from voc_api.models import (
     LinkResponse,
     LinkSet,
+    User,
 )
 from starlette.requests import Request
 import logging
 import uuid
-import voc_api.deps as deps
 
 router = APIRouter()
 
@@ -27,8 +31,15 @@ async def link_get(iri: str, db=Depends(get_db)):
 
 
 @router.post("/link")
-async def link_set(query: LinkSet, request: Request, db=Depends(get_db)):
+async def link_set(
+        query: LinkSet,
+        request: Request,
+        current_user: User = Depends(get_current_active_user_opt),
+        db=Depends(get_db)):
     # Set term-item association
+    if not current_user or not current_user.valid:
+        raise credentials_exception
+
     op_uuid = uuid.uuid4()
 
     sql = """

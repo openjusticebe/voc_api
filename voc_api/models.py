@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, AnyUrl, Field
 
 
@@ -21,3 +21,10 @@ class LinkResponse(BaseModel):
 class LinkSet(BaseModel):
     item_iri: str
     terms: List[str] = Field([], description="Terms to associate")
+
+
+class User(BaseModel):
+    email: str
+    valid: Optional[bool] = True
+    username: str
+    admin: bool = True
