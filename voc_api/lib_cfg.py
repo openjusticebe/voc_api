@@ -21,6 +21,11 @@ class ConfigClass:
     """
     _config = {
         'sparql_endpoint': os.getenv('SPARQL_ENDPOINT'),
+        'postgresql': {
+            'dsn': os.getenv('PG_DSN', 'postgres://user:pass@localhost:5432/db'),
+            'min_size': 4,
+            'max_size': 20
+        },
         'proxy_prefix': os.getenv('PROXY_PREFIX', ''),
         'force_recreate': True,
         'server': {

@@ -1,5 +1,5 @@
 from ..deps import match
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from voc_api.models import (
     SuggestResponse
 )

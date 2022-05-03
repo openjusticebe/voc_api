@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 
 import pytz
+import asyncpg
 import toml
 import uvicorn
 from fastapi import FastAPI
@@ -16,7 +17,10 @@ import voc_api.lib_misc as lm
 
 from .deps import logger
 from .lib_cfg import config
-from .routers import voc
+from .routers import (
+    voc,
+    link,
+)
 
 # ################################################### SETUP AND ARGUMENT PARSING
 # ##############################################################################
@@ -38,6 +42,7 @@ app = FastAPI(root_path=config.key('proxy_prefix'), openapi_tags=tags_metadata)
 
 # Include sub routes
 app.include_router(voc.router)
+app.include_router(link.router)
 
 # Server config
 app.add_middleware(
@@ -53,6 +58,19 @@ app.add_middleware(
 async def startup_event():
     # Build whoosh index
     deps.WH_INDEX = deps.init_state()
+
+    # Set up database
+    if os.getenv('NO_ASYNCPG', 'false') == 'false':
+        try:
+            cfg = config.key('postgresql')
+            deps.DB_POOL = await asyncpg.create_pool(**cfg)
+            logger.info('Database connection pool OK')
+        except asyncpg.InvalidPasswordError:
+            if config.key('log_level') != 'debug':
+                logger.critical("No database found")
+                raise
+            logger.warning("No Database Found !!!! But we're in debug mode, proceeding anyway")
+            deps.DB_POOL = False
 
 
 # ############################################################### SERVER ROUTES

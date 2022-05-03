@@ -24,6 +24,16 @@ logger.setLevel(logging.getLevelName('INFO'))
 logger.addHandler(logging.StreamHandler())
 
 WH_INDEX = False
+DB_POOL = False
+
+
+async def get_db():
+    global DB_POOL  # pylint:disable=global-statement
+    conn = await DB_POOL.acquire()
+    try:
+        yield conn
+    finally:
+        await DB_POOL.release(conn)
 
 
 def words_get(raw_query: str) -> t.List[str]:
