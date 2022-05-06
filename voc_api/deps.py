@@ -79,11 +79,6 @@ def init_state(force=False):
     if check_table(index_dir) and not force and not config.key('force_recreate'):
         return open_dir(index_dir)
 
-    # TODO: Build IDX
-    # - get data
-    # - write to whoosh
-    #
-
     g = rdflib.Graph()
 
     query = """
@@ -94,10 +89,15 @@ WHERE {
     SERVICE <%s> {
         ?subject <http://www.w3.org/2004/02/skos/core#notation> ?term .
         ?subject <http://www.w3.org/2004/02/skos/core#prefLabel> ?plabel .
-            OPTIONAL {
-        ?subject <http://www.w3.org/2004/02/skos/core#altLabel> ?alabel
-            FILTER (lang(?alabel) = 'fr')
-          }
+        OPTIONAL {
+            ?subject <http://www.w3.org/2004/02/skos/core#altLabel> ?alabel
+                FILTER (lang(?alabel) = 'fr')
+        }
+        OPTIONAL {
+            ?subject <http://www.w3.org/2004/02/skos/core#broader> ?parent .
+            ?parent <http://www.w3.org/2004/02/skos/core#prefLabel> ?blabel .
+                FILTER (lang(?blabel) = 'fr')
+        }
         FILTER (lang(?plabel) = 'fr')
     }
 }
@@ -112,18 +112,14 @@ WHERE {
     i = 0
     for row in qres:
         i += 1
-        list.append({
-            'label': str(row.plabel),
+        payload = {
+            'label': str(row.plabel) if not row.alabel else f"{row.plabel} ({row.alabel})",
             'url': str(row.subject),
-            'tp': 'pref'
-        })
+            'notation': str(row.term),
+            'parent': str(row.blabel)
+        }
 
-        if row.alabel:
-            list.append({
-                'label': str(row.alabel),
-                'url': str(row.subject),
-                'tp': 'alt'
-            })
+        list.append(payload)
 
     logger.info('Obtained %s terms, preparing to index' % i)
     create_table(index_dir, overwrite=True)
@@ -159,7 +155,8 @@ def create_table(index_dir, *, overwrite=False):
     schema = Schema(
         label=TEXT(stored=True, analyzer=analyzer, lang='fr'),
         url=STORED,
-        tp=STORED,
+        notation=STORED,
+        parent=STORED,
     )
 
     if not os.path.exists(index_dir):
@@ -182,7 +179,7 @@ def create_table(index_dir, *, overwrite=False):
 class CustomFuzzyTerm(FuzzyTerm):
     def __init__(self, fieldname, text, boost=5.0, maxdist=2,  # pylint: disable=too-many-arguments
                  prefixlength=3, constantscore=False):
-        super().__init__(fieldname, text, boost, maxdist, prefixlength, constantscore)
+            super().__init__(fieldname, text, boost, maxdist, prefixlength, constantscore)
 
 
 def match(query_str, idx, limit=40):
@@ -220,8 +217,9 @@ def match(query_str, idx, limit=40):
                 'uri': res['url'],
                 'label': res['label'],
                 'label_ln': 'fr',
-                'label_type': res['tp'],
-                'score': res.score
+                'label_parent': res['parent'],
+                'notation': res['notation'],
+                'score': res.score,
             })
 
     return sorted(ret_results, key=lambda e: e['score'], reverse=True)

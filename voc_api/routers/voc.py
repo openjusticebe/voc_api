@@ -21,5 +21,5 @@ async def labels(begin: str, lang: str):
     list = match(begin, deps.WH_INDEX)
 
     return {
-        'data': list
+        'data': list[:5]
     }

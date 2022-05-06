@@ -6,7 +6,8 @@ class Suggestion(BaseModel):
     uri: AnyUrl
     label: str
     label_ln: str
-    label_type: str
+    label_parent: str
+    notation: str
     score: float
 
 
