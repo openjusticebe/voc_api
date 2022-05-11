@@ -22,6 +22,8 @@ class LinkResponse(BaseModel):
 class LinkSet(BaseModel):
     item_iri: str
     terms: List[str] = Field([], description="Terms to associate")
+    collection: str = Field(None, description="Add to collection")
+    tags: List[str] = Field([], description="Tags to associate")
 
 
 class User(BaseModel):

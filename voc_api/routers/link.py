@@ -25,15 +25,29 @@ logger.addHandler(logging.StreamHandler())
 
 
 @router.get("/link", response_model=LinkResponse)
-async def link_get(iri: str, db=Depends(get_db)):
+async def link_get(iri: str, collection: str = None, db=Depends(get_db)):
     logger.debug('Get links for %s', iri)
-    sql = """
-    SELECT term_iri
-    FROM links
-    WHERE item_iri = $1
-    ORDER BY date_created DESC
-    """
-    res = await db.fetch(sql, iri)
+
+    if collection:
+        sql = """
+        SELECT term_iri
+        FROM links
+        WHERE item_iri = $1
+        AND collection = $2
+        ORDER BY date_created DESC
+        """
+        res = await db.fetch(sql, iri, collection)
+
+    else:
+        sql = """
+        SELECT term_iri
+        FROM links
+        WHERE item_iri = $1
+        AND collection IS NULL
+        ORDER BY date_created DESC
+        """
+        res = await db.fetch(sql, iri)
+
     return {'data': [str(r['term_iri']) for r in res]}
 
 
@@ -53,9 +67,11 @@ async def link_set(
     INSERT INTO links (
         item_iri,
         term_iri,
+        tags,
+        collection,
         op_uuid,
         ukey
-    ) VALUES ( $1, $2, $3, $4)
+    ) VALUES ( $1, $2, $3, $4, $5, $6)
     RETURNING id_internal;
     """
 
@@ -65,6 +81,8 @@ async def link_set(
                 sql,
                 query.item_iri,
                 term_iri,
+                query.tags,
+                query.collection,
                 op_uuid,
                 current_user.email
             )

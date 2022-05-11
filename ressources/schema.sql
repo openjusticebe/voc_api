@@ -15,6 +15,10 @@ CREATE TABLE "links" (
     op_uuid UUID,
     -- author
     ukey TEXT,
+    -- collection
+    collection TEXT DEFAULT NULL,
+    -- tags
+    tags TEXT[],
     -- misc
     date_created TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     date_updated TIMESTAMP WITH TIME ZONE,
@@ -24,5 +28,7 @@ CREATE TABLE "links" (
 
 CREATE INDEX links_item_idx ON "links" (item_iri);
 CREATE INDEX links_term_idx ON "links" (term_iri);
+CREATE INDEX links_collection_idx ON "links" (collection);
 CREATE INDEX links_ukey_idx ON "links" USING BRIN(term_iri);
+CREATE INDEX links_tags_idx ON "links" USING BRIN(term_iri);
 CREATE INDEX links_op_idx ON "links" USING BRIN(op_uuid);
