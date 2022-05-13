@@ -77,33 +77,70 @@ async def nav_collection(collection: str, subject: str, db=Depends(get_db)):
     query = """
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
-SELECT ?label_fr ?subject ?label_parent_fr
+SELECT *
 WHERE {
     SERVICE <%s> {
-        <%s> <http://www.w3.org/2004/02/skos/core#prefLabel> ?label_parent_fr .
+        # current
+        <%s> <http://www.w3.org/2004/02/skos/core#prefLabel> ?label_current_fr .
+
+        FILTER (lang(?label_current_fr) = 'fr')
+
+        OPTIONAL {
         <%s> <http://www.w3.org/2004/02/skos/core#narrower> ?subject.
         ?subject <http://www.w3.org/2004/02/skos/core#prefLabel> ?label_fr .
         FILTER (lang(?label_fr) = 'fr')
+        }
+
+        OPTIONAL {
+        # parent
+        <%s> <http://www.w3.org/2004/02/skos/core#broader> ?parent.
+        ?parent <http://www.w3.org/2004/02/skos/core#prefLabel> ?label_parent_fr .
         FILTER (lang(?label_parent_fr) = 'fr')
+        }
+
+        OPTIONAL {
+        # topconcept
+        <%s> <http://www.w3.org/2004/02/skos/core#hasTopConcept> ?topConcept.
+        ?topConcept <http://www.w3.org/2004/02/skos/core#prefLabel> ?label_topC_fr .
+
+        FILTER (lang(?label_topC_fr) = 'fr')
+        }
+
     }
 }
-    """ % (config.key('sparql_endpoint'), subject, subject)
+    """ % (config.key('sparql_endpoint'), subject, subject, subject, subject)
     logger.debug(query)
     qres = g.query(query)
 
-    parent_label = None
+    current_label = None
+    parent = None
+    top = None
     tree = []
     i = 0
     for row in qres:
         i += 1
-        if not parent_label:
-            parent_label = {'fr': str(row.label_parent_fr)}
-        tree.append({
-            'order': i,
-            'labels': {'fr': str(row.label_fr)},
-            'iri': str(row.subject),
-            'sub_documents_count': None,
-        })
+        if not current_label:
+            current_label = {'fr': str(row.label_current_fr)}
+
+        if not parent and row.parent:
+            parent = {
+                'iri': str(row.parent),
+                'labels': {'fr': str(row.label_parent_fr)}
+            }
+
+        if not top and row.topConcept:
+            top = {
+                'iri': str(row.topConcept),
+                'labels': {'fr': str(row.label_topC_fr)}
+            }
+
+        if row.label_fr:
+            tree.append({
+                'order': i,
+                'labels': {'fr': str(row.label_fr)},
+                'iri': str(row.subject),
+                'sub_documents_count': None,
+            })
 
     # ##################################################### Get Database Links
     # ########################################################################
@@ -117,7 +154,9 @@ WHERE {
     res = await db.fetch(sql, subject, collection)
 
     return {
-        'parent': {'iri': subject, 'labels': parent_label},
+        'topConcept': top,
+        'parent': parent,
+        'current': {'iri': subject, 'labels': current_label},
         'tree': tree,
         'documents': [str(r['term_iri']) for r in res]
     }
