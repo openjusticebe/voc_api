@@ -51,8 +51,7 @@ WHERE {
         tree.append({
             'order': i,
             'labels': {'fr': str(row.label_fr)},
-            'iri_self': str(row.subject),
-            'iri_parent': None,
+            'iri': str(row.subject),
             'sub_documents_count': None,
         })
     logger.info('Obtained %s domains' % i)
