@@ -24,7 +24,7 @@ logger.setLevel(logging.getLevelName('DEBUG'))
 logger.addHandler(logging.StreamHandler())
 
 
-@router.get("/link", response_model=LinkResponse)
+@router.get("/link", response_model=LinkResponse, tags=["vocabulary"])
 async def link_get(iri: str, collection: str = None, db=Depends(get_db)):
     logger.debug('Get links for %s', iri)
 
@@ -51,7 +51,7 @@ async def link_get(iri: str, collection: str = None, db=Depends(get_db)):
     return {'data': [str(r['term_iri']) for r in res]}
 
 
-@router.post("/link")
+@router.post("/link", tags=["vocabulary"])
 async def link_set(
         query: LinkSet,
         request: Request,

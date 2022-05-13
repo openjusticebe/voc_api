@@ -20,6 +20,7 @@ class ConfigClass:
     Application-wide config object
     """
     _config = {
+        'app_title': 'VocAPI',
         'sparql_endpoint': os.getenv('SPARQL_ENDPOINT'),
         'postgresql': {
             'dsn': os.getenv('PG_DSN', 'postgres://user:pass@localhost:5432/db'),

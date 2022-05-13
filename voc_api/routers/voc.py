@@ -9,7 +9,7 @@ from voc_api.deps import match, logger
 router = APIRouter()
 
 
-@router.get("/suggest/{begin}", response_model=SuggestResponse, tags=["crud"])
+@router.get("/suggest/{begin}", response_model=SuggestResponse, tags=["vocabulary"])
 async def labels(begin: str, lang: str):
     """
     Return matching word labels (only search from beginning of string)

@@ -20,6 +20,7 @@ from .lib_cfg import config
 from .routers import (
     voc,
     link,
+    navigate,
 )
 
 # ################################################### SETUP AND ARGUMENT PARSING
@@ -36,13 +37,33 @@ tags_metadata = [
 
 # ############################################ SERVER ROUTES
 # #############################################################################
+DESCRIPTION = """
+Find, Store and navigate knowledge graphs.
+"""
 
 
-app = FastAPI(root_path=config.key('proxy_prefix'), openapi_tags=tags_metadata)
+app = FastAPI(
+    title=config.key('app_title'),
+    version=VERSION,
+    description=DESCRIPTION,
+    license_info={
+        'name': 'EUPL-1.2',
+        'url': 'https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12'
+    },
+    contact={
+        'name': 'OpenJustice.be',
+        'url': 'https://openjustice.be',
+        'email': 'team@openjustice.be',
+
+    },
+    root_path=config.key('proxy_prefix'),
+    openapi_tags=tags_metadata
+)
 
 # Include sub routes
 app.include_router(voc.router)
 app.include_router(link.router)
+app.include_router(navigate.router)
 
 # Server config
 app.add_middleware(
