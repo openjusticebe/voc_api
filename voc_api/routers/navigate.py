@@ -71,7 +71,7 @@ async def nav_collection(collection: str, subject: str, db=Depends(get_db)):
     # ##################################################### Get Graph Subjects
     # ########################################################################
     g = rdflib.Graph()
-    if '%' in subject:
+    while '%' in subject:
         subject = urllib.parse.unquote(subject)
 
     query = """
@@ -145,7 +145,7 @@ WHERE {
     # ##################################################### Get Database Links
     # ########################################################################
     sql = """
-        SELECT term_iri
+        SELECT item_iri
         FROM links
         WHERE term_iri = $1
         AND collection = $2
@@ -158,5 +158,5 @@ WHERE {
         'parent': parent,
         'current': {'iri': subject, 'labels': current_label},
         'tree': tree,
-        'documents': [str(r['term_iri']) for r in res]
+        'documents': [str(r['item_iri']) for r in res]
     }
